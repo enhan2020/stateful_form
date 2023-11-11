@@ -46,15 +46,8 @@ class _MyHomePageState extends State<MyHomePage> {
             child: SingleChildScrollView(
               child: CustomForm(
                 initData: contact,
-                onDatePicker: (date) async {
-                  final initialDate = date ?? DateTime.now();
-                  return await showDatePicker(
-                    context: context,
-                    initialDate: initialDate,
-                    firstDate: initialDate.subtract(const Duration(days: 30)),
-                    lastDate: initialDate.add(const Duration(days: 30)),
-                  );
-                },
+                onDatePicker: _showDatePicker,
+                dateFormatter: _dateFormatter,
                 onSave: (value) => setState(() => contact = value),
               ),
             ),
@@ -63,11 +56,27 @@ class _MyHomePageState extends State<MyHomePage> {
       ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
+
+  Future<DateTime?> _showDatePicker(DateTime? dateTime) async {
+    final initialDate = dateTime ?? DateTime.now();
+    return await showDatePicker(
+      context: context,
+      initialDate: initialDate,
+      firstDate: initialDate.subtract(const Duration(days: 30)),
+      lastDate: initialDate.add(const Duration(days: 30)),
+    );
+  }
+
+  String? _dateFormatter(DateTime? dateTime) {
+    if(dateTime == null) return null;
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
 }
 
 class CustomForm extends StatefulWidget {
   final Contact? initData;
   final Future<DateTime?> Function(DateTime?)? onDatePicker;
+  final String? Function(DateTime?)? dateFormatter;
   final void Function(Contact)? onSave;
 
   const CustomForm({
@@ -75,6 +84,7 @@ class CustomForm extends StatefulWidget {
     required this.initData,
     required this.onSave,
     this.onDatePicker,
+    this.dateFormatter,
   });
 
   @override
@@ -95,7 +105,7 @@ class _CustomFormState extends State<CustomForm> {
       _dob = widget.initData!.dob;
     }
 
-    _dobController = TextEditingController(text: _dob?.toIso8601String());
+    _dobController = TextEditingController(text: widget.dateFormatter?.call(_dob) ?? _dob!.toIso8601String());
   }
 
   @override
@@ -115,7 +125,7 @@ class _CustomFormState extends State<CustomForm> {
               final res = await widget.onDatePicker?.call(_dob);
               if (res != null) {
                 _dob = res;
-                _dobController?.text = _dob!.toIso8601String();
+                _dobController?.text = widget.dateFormatter?.call(_dob) ?? _dob!.toIso8601String();
               }
             },
           ),
