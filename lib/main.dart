@@ -30,7 +30,7 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  var contact = const Contact(firstName: '', lastName: '');
+  Contact? contact = Contact(name: 'John', dob: DateTime(1990, 10, 10));
 
   @override
   Widget build(BuildContext context) {
@@ -46,9 +46,16 @@ class _MyHomePageState extends State<MyHomePage> {
             child: SingleChildScrollView(
               child: CustomForm(
                 initData: contact,
-                onSave: (value) => setState(() {
-                  contact = value;
-                }),
+                onDatePicker: (date) async {
+                  final initialDate = date ?? DateTime.now();
+                  return await showDatePicker(
+                    context: context,
+                    initialDate: initialDate,
+                    firstDate: initialDate.subtract(const Duration(days: 30)),
+                    lastDate: initialDate.add(const Duration(days: 30)),
+                  );
+                },
+                onSave: (value) => setState(() => contact = value),
               ),
             ),
           ),
@@ -60,9 +67,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
 class CustomForm extends StatefulWidget {
   final Contact? initData;
+  final Future<DateTime?> Function(DateTime?)? onDatePicker;
   final void Function(Contact)? onSave;
 
-  const CustomForm({super.key, required this.initData, required this.onSave});
+  const CustomForm({
+    super.key,
+    required this.initData,
+    required this.onSave,
+    this.onDatePicker,
+  });
 
   @override
   State<CustomForm> createState() => _CustomFormState();
@@ -70,16 +83,19 @@ class CustomForm extends StatefulWidget {
 
 class _CustomFormState extends State<CustomForm> {
   final formKey = GlobalKey<FormState>();
-  String _firstName = '';
-  String _lastName = '';
+  String _name = 'default first';
+  DateTime? _dob;
+  TextEditingController? _dobController;
 
   @override
   void initState() {
     super.initState();
     if (widget.initData != null) {
-      _firstName = widget.initData!.firstName;
-      _lastName = widget.initData!.lastName;
+      _name = widget.initData!.name ?? '';
+      _dob = widget.initData!.dob;
     }
+
+    _dobController = TextEditingController(text: _dob?.toIso8601String());
   }
 
   @override
@@ -89,20 +105,27 @@ class _CustomFormState extends State<CustomForm> {
       child: Column(
         children: [
           TextFormField(
-            initialValue: _firstName,
-            onSaved: (value) => _firstName = value ?? '',
+            initialValue: _name,
+            onSaved: (value) => _name = value ?? '',
           ),
           TextFormField(
-            initialValue: _lastName,
-            onSaved: (value) => _lastName = value ?? '',
+            controller: _dobController,
+            readOnly: true,
+            onTap: () async {
+              final res = await widget.onDatePicker?.call(_dob);
+              if (res != null) {
+                _dob = res;
+                _dobController?.text = _dob!.toIso8601String();
+              }
+            },
           ),
           ElevatedButton(
             onPressed: () {
               formKey.currentState?.save();
               widget.onSave?.call(
                 Contact(
-                  firstName: _firstName,
-                  lastName: _lastName,
+                  name: _name,
+                  dob: _dob,
                 ),
               );
             },
@@ -112,16 +135,25 @@ class _CustomFormState extends State<CustomForm> {
       ),
     );
   }
+
+  @override
+  void dispose() {
+    _dobController?.dispose();
+    super.dispose();
+  }
 }
 
 class Contact {
-  final String firstName;
-  final String lastName;
+  final String? name;
+  final DateTime? dob;
 
-  const Contact({required this.firstName, required this.lastName});
+  const Contact({
+    required this.name,
+    required this.dob,
+  });
 
   @override
   String toString() {
-    return 'firstName: $firstName, lastName: $lastName';
+    return 'name: $name, dob: ${dob?.toIso8601String()}';
   }
 }
