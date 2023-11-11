@@ -213,6 +213,7 @@ class _CustomFormState extends State<CustomForm> {
   @override
   void dispose() {
     _dobController?.dispose();
+    _countryController?.dispose();
     super.dispose();
   }
 }
