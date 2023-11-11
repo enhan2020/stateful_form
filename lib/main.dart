@@ -30,7 +30,22 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  Contact? contact = Contact(name: 'John', dob: DateTime(1990, 10, 10));
+  final List<Country> countryList = const [
+    Country(label: 'Malaysia', code: 'my'),
+    Country(label: 'Singapore', code: 'sg'),
+    Country(label: 'Indonesia', code: 'id'),
+  ];
+
+  Contact? contact;
+  @override
+  void initState() {
+    super.initState();
+    contact = Contact(
+      name: 'John',
+      dob: DateTime(1990, 10, 10),
+      country: countryList.first,
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,12 +63,14 @@ class _MyHomePageState extends State<MyHomePage> {
                 initData: contact,
                 onDatePicker: _showDatePicker,
                 dateFormatter: _dateFormatter,
+                countryList: countryList,
+                onCountryPicker: _showCountryPicker,
                 onSave: (value) => setState(() => contact = value),
               ),
             ),
           ),
         ],
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 
@@ -68,8 +85,35 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   String? _dateFormatter(DateTime? dateTime) {
-    if(dateTime == null) return null;
+    if (dateTime == null) return null;
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
+
+  Future<Country?> _showCountryPicker(List<Country> data, Country? selected) async {
+    return await showModalBottomSheet<Country>(
+      context: context,
+      builder: (context) {
+        return ConstrainedBox(
+          constraints: BoxConstraints(maxHeight: MediaQuery.sizeOf(context).height * 0.6),
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              mainAxisSize: MainAxisSize.min,
+              children: data //
+                  .map(
+                    (country) => InkWell(
+                      onTap: () => Navigator.of(context).pop(country),
+                      child: ListTile(
+                        title: Text(country.label),
+                      ),
+                    ),
+                  )
+                  .toList(),
+            ),
+          ),
+        );
+      },
+    );
   }
 }
 
@@ -77,6 +121,8 @@ class CustomForm extends StatefulWidget {
   final Contact? initData;
   final Future<DateTime?> Function(DateTime?)? onDatePicker;
   final String? Function(DateTime?)? dateFormatter;
+  final List<Country>? countryList;
+  final Future<Country?> Function(List<Country> data, Country? selected)? onCountryPicker;
   final void Function(Contact)? onSave;
 
   const CustomForm({
@@ -85,6 +131,8 @@ class CustomForm extends StatefulWidget {
     required this.onSave,
     this.onDatePicker,
     this.dateFormatter,
+    this.countryList,
+    this.onCountryPicker,
   });
 
   @override
@@ -96,6 +144,8 @@ class _CustomFormState extends State<CustomForm> {
   String _name = 'default first';
   DateTime? _dob;
   TextEditingController? _dobController;
+  Country? _country;
+  TextEditingController? _countryController;
 
   @override
   void initState() {
@@ -103,9 +153,11 @@ class _CustomFormState extends State<CustomForm> {
     if (widget.initData != null) {
       _name = widget.initData!.name ?? '';
       _dob = widget.initData!.dob;
+      _country = widget.initData!.country;
     }
 
-    _dobController = TextEditingController(text: widget.dateFormatter?.call(_dob) ?? _dob!.toIso8601String());
+    _dobController = TextEditingController(text: widget.dateFormatter?.call(_dob) ?? _dob?.toIso8601String());
+    _countryController = TextEditingController(text: _country?.label);
   }
 
   @override
@@ -129,6 +181,17 @@ class _CustomFormState extends State<CustomForm> {
               }
             },
           ),
+          TextFormField(
+            controller: _countryController,
+            readOnly: true,
+            onTap: () async {
+              final res = await widget.onCountryPicker?.call(widget.countryList ?? [], _country);
+              if (res != null) {
+                _country = res;
+                _countryController?.text = _country!.label;
+              }
+            },
+          ),
           ElevatedButton(
             onPressed: () {
               formKey.currentState?.save();
@@ -136,6 +199,7 @@ class _CustomFormState extends State<CustomForm> {
                 Contact(
                   name: _name,
                   dob: _dob,
+                  country: _country,
                 ),
               );
             },
@@ -156,14 +220,23 @@ class _CustomFormState extends State<CustomForm> {
 class Contact {
   final String? name;
   final DateTime? dob;
+  final Country? country;
 
   const Contact({
-    required this.name,
-    required this.dob,
+    this.name,
+    this.dob,
+    this.country,
   });
 
   @override
   String toString() {
-    return 'name: $name, dob: ${dob?.toIso8601String()}';
+    return 'name: $name, dob: ${dob?.toIso8601String()}, country: ${country?.label}(${country?.code})';
   }
+}
+
+class Country {
+  final String code;
+  final String label;
+
+  const Country({required this.code, required this.label});
 }
