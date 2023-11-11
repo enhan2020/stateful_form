@@ -37,6 +37,7 @@ class _MyHomePageState extends State<MyHomePage> {
   ];
 
   Contact? contact;
+
   @override
   void initState() {
     super.initState();
@@ -60,7 +61,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Expanded(
             child: SingleChildScrollView(
               child: CustomForm(
-                initData: contact,
+                initialValue: contact,
                 onDatePicker: _showDatePicker,
                 dateFormatter: _dateFormatter,
                 countryList: countryList,
@@ -118,7 +119,7 @@ class _MyHomePageState extends State<MyHomePage> {
 }
 
 class CustomForm extends StatefulWidget {
-  final Contact? initData;
+  final Contact? initialValue;
   final Future<DateTime?> Function(DateTime?)? onDatePicker;
   final String? Function(DateTime?)? dateFormatter;
   final List<Country>? countryList;
@@ -127,7 +128,7 @@ class CustomForm extends StatefulWidget {
 
   const CustomForm({
     super.key,
-    required this.initData,
+    required this.initialValue,
     required this.onSave,
     this.onDatePicker,
     this.dateFormatter,
@@ -141,23 +142,18 @@ class CustomForm extends StatefulWidget {
 
 class _CustomFormState extends State<CustomForm> {
   final formKey = GlobalKey<FormState>();
-  String _name = 'default first';
+  String? _name;
   DateTime? _dob;
-  TextEditingController? _dobController;
   Country? _country;
-  TextEditingController? _countryController;
 
   @override
   void initState() {
     super.initState();
-    if (widget.initData != null) {
-      _name = widget.initData!.name ?? '';
-      _dob = widget.initData!.dob;
-      _country = widget.initData!.country;
+    if (widget.initialValue != null) {
+      _name = widget.initialValue!.name;
+      _dob = widget.initialValue!.dob;
+      _country = widget.initialValue!.country;
     }
-
-    _dobController = TextEditingController(text: widget.dateFormatter?.call(_dob) ?? _dob?.toIso8601String());
-    _countryController = TextEditingController(text: _country?.label);
   }
 
   @override
@@ -170,26 +166,24 @@ class _CustomFormState extends State<CustomForm> {
             initialValue: _name,
             onSaved: (value) => _name = value ?? '',
           ),
-          TextFormField(
-            controller: _dobController,
-            readOnly: true,
+          PickerTextFormField(
+            initialValue: widget.dateFormatter?.call(_dob) ?? _dob!.toIso8601String(),
             onTap: () async {
-              final res = await widget.onDatePicker?.call(_dob);
-              if (res != null) {
-                _dob = res;
-                _dobController?.text = widget.dateFormatter?.call(_dob) ?? _dob!.toIso8601String();
-              }
+              final result = await widget.onDatePicker?.call(_dob);
+              if (result == null) return null;
+
+              _dob = result;
+              return widget.dateFormatter?.call(_dob) ?? _dob!.toIso8601String();
             },
           ),
-          TextFormField(
-            controller: _countryController,
-            readOnly: true,
+          PickerTextFormField(
+            initialValue: _country?.label,
             onTap: () async {
-              final res = await widget.onCountryPicker?.call(widget.countryList ?? [], _country);
-              if (res != null) {
-                _country = res;
-                _countryController?.text = _country!.label;
-              }
+              final result = await widget.onCountryPicker?.call(widget.countryList ?? [], _country);
+              if (result == null) return null;
+
+              _country = result;
+              return _country!.label;
             },
           ),
           ElevatedButton(
@@ -209,11 +203,48 @@ class _CustomFormState extends State<CustomForm> {
       ),
     );
   }
+}
+
+class PickerTextFormField extends StatefulWidget {
+  final String? initialValue;
+  final Future<String?> Function() onTap;
+
+  const PickerTextFormField({
+    super.key,
+    this.initialValue,
+    required this.onTap,
+  });
+
+  @override
+  State<PickerTextFormField> createState() => _PickerTextFormFieldState();
+}
+
+class _PickerTextFormFieldState extends State<PickerTextFormField> {
+  TextEditingController? _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: _controller,
+      readOnly: true,
+      onTap: () async {
+        final result = await widget.onTap.call();
+        if (result != null) {
+          _controller?.text = result;
+        }
+      },
+    );
+  }
 
   @override
   void dispose() {
-    _dobController?.dispose();
-    _countryController?.dispose();
+    _controller?.dispose();
     super.dispose();
   }
 }
