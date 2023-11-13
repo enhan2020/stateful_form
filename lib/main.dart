@@ -1,5 +1,7 @@
-import 'package:flutter/material.dart';
+import 'dart:convert';
 
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'custom_form.dart';
 import 'model.dart';
 
@@ -33,22 +35,50 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  final List<Country> countryList = const [
-    Country(label: 'Malaysia', code: 'my'),
-    Country(label: 'Singapore', code: 'sg'),
-    Country(label: 'Indonesia', code: 'id'),
-  ];
+  final initialInformation = {
+    'name': 'John Cris',
+    'dob': '2000-10-21',
+    'country': 'ID',
+    'gender': 'F',
+  };
 
-  Contact? contact;
+  Map<String, dynamic>? configData;
+  Map<String, dynamic> _value = {};
 
   @override
   void initState() {
     super.initState();
-    contact = Contact(
-      name: 'John',
-      dob: DateTime(1990, 10, 10),
-      country: countryList.first,
-    );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      final configString = await rootBundle.loadString('assets/sample.json');
+      configData = jsonDecode(configString)?['data'];
+
+      for (var info in initialInformation.entries) {
+        final key = info.key;
+        final value = info.value;
+        // skip if key not found in config
+        if (configData?.containsKey(key) != true) continue;
+        final config = configData?[key];
+
+        // get input field type
+        final fieldType =
+            FieldType.values.firstWhere((element) => element.value == config?['type'], orElse: () => FieldType.unknown);
+
+        // parse to object
+        switch (fieldType) {
+          case FieldType.text:
+            _value[key] = value;
+          case FieldType.datetime:
+            _value[key] = DateTime.tryParse(value);
+          case FieldType.dropdown:
+            if (config?['list']?.containsKey(value) == true) {
+              _value[key] = DropdownModel(code: value, label: config!['list']![value]?['label']);
+            }
+          case FieldType.unknown:
+            _value[key] = value;
+        }
+      }
+      setState(() {});
+    });
   }
 
   @override
@@ -60,16 +90,16 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: [
-          Text(contact.toString()),
+          Text(_value.encodeToString.toString()),
           Expanded(
             child: SingleChildScrollView(
               child: CustomForm(
-                initialValue: contact,
+                config: configData ?? {},
+                initialValue: _value,
                 onDatePicker: _showDatePicker,
                 dateFormatter: _dateFormatter,
-                countryList: countryList,
-                onCountryPicker: _showCountryPicker,
-                onSave: (value) => setState(() => contact = value),
+                onDropdownPicker: _showDropdownPicker,
+                onSave: (value) => setState(() => _value = value),
               ),
             ),
           ),
@@ -93,8 +123,8 @@ class _MyHomePageState extends State<MyHomePage> {
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
 
-  Future<Country?> _showCountryPicker(List<Country> data, Country? selected) async {
-    return await showModalBottomSheet<Country>(
+  Future<DropdownModel?> _showDropdownPicker(List<DropdownModel> data, DropdownModel? selected) async {
+    return await showModalBottomSheet<DropdownModel>(
       context: context,
       builder: (context) {
         return ConstrainedBox(
@@ -118,5 +148,18 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       },
     );
+  }
+}
+
+extension on Map<String, dynamic> {
+  Map<String, dynamic> get encodeToString {
+    final beautifyValue = map((key, value) {
+      String? result;
+      if (value is DateTime) result = value.toIso8601String();
+      if (value is DropdownModel) result = value.code;
+
+      return MapEntry(key, result ?? value);
+    });
+    return beautifyValue;
   }
 }

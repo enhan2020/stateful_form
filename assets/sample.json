@@ -1,0 +1,24 @@
+{
+  "data": {
+    "name": {
+      "type": "text"
+    },
+    "dob": {
+      "type": "datetime"
+    },
+    "country": {
+      "type": "dropdown",
+      "list": {
+        "MY": {
+          "label": "Malaysia"
+        },
+        "SG": {
+          "label": "Singapore"
+        },
+        "ID": {
+          "label": "Indonesia"
+        }
+      }
+    }
+  }
+}

@@ -3,21 +3,21 @@ import 'package:flutter/material.dart';
 import 'model.dart';
 
 class CustomForm extends StatefulWidget {
-  final Contact? initialValue;
+  final Map<String, dynamic> config;
+  final Map<String, dynamic>? initialValue;
   final Future<DateTime?> Function(DateTime?)? onDatePicker;
   final String? Function(DateTime?)? dateFormatter;
-  final List<Country>? countryList;
-  final Future<Country?> Function(List<Country> data, Country? selected)? onCountryPicker;
-  final void Function(Contact)? onSave;
+  final Future<DropdownModel?> Function(List<DropdownModel> data, DropdownModel? selected)? onDropdownPicker;
+  final void Function(Map<String, dynamic>)? onSave;
 
   const CustomForm({
     super.key,
-    required this.initialValue,
-    required this.onSave,
+    required this.config,
+    this.initialValue,
+    this.onSave,
     this.onDatePicker,
     this.dateFormatter,
-    this.countryList,
-    this.onCountryPicker,
+    this.onDropdownPicker,
   });
 
   @override
@@ -26,17 +26,13 @@ class CustomForm extends StatefulWidget {
 
 class _CustomFormState extends State<CustomForm> {
   final formKey = GlobalKey<FormState>();
-  String? _name;
-  DateTime? _dob;
-  Country? _country;
+  Map<String, dynamic> _data = {};
 
   @override
   void initState() {
     super.initState();
     if (widget.initialValue != null) {
-      _name = widget.initialValue!.name;
-      _dob = widget.initialValue!.dob;
-      _country = widget.initialValue!.country;
+      _data = widget.initialValue!;
     }
   }
 
@@ -46,40 +42,52 @@ class _CustomFormState extends State<CustomForm> {
       key: formKey,
       child: Column(
         children: [
-          TextFormField(
-            initialValue: _name,
-            onSaved: (value) => _name = value ?? '',
-          ),
-          PickerTextFormField(
-            initialValue: widget.dateFormatter?.call(_dob) ?? _dob!.toIso8601String(),
-            onTap: () async {
-              final result = await widget.onDatePicker?.call(_dob);
-              if (result == null) return null;
+          ...widget.config.entries.map((entry) {
+            final entryValue = entry.value;
+            final fieldCode = entry.key;
 
-              _dob = result;
-              return widget.dateFormatter?.call(_dob) ?? _dob!.toIso8601String();
-            },
-          ),
-          PickerTextFormField(
-            initialValue: _country?.label,
-            onTap: () async {
-              final result = await widget.onCountryPicker?.call(widget.countryList ?? [], _country);
-              if (result == null) return null;
+            final fieldType = FieldType.values
+                .firstWhere((element) => element.value == entryValue['type'], orElse: () => FieldType.unknown);
+            switch (fieldType) {
+              case FieldType.text:
+                return TextFormField(
+                  initialValue: _data[fieldCode],
+                  onSaved: (value) => _data[fieldCode] = value ?? '',
+                );
+              case FieldType.datetime:
+                return PickerTextFormField(
+                  initialValue: widget.dateFormatter?.call(_data[fieldCode]) ?? _data[fieldCode]?.toIso8601String(),
+                  onTap: () async {
+                    final result = await widget.onDatePicker?.call(_data[fieldCode]);
+                    if (result == null) return null;
 
-              _country = result;
-              return _country!.label;
-            },
-          ),
+                    _data[fieldCode] = result;
+                    return widget.dateFormatter?.call(_data[fieldCode]) ?? _data[fieldCode]!.toIso8601String();
+                  },
+                );
+              case FieldType.dropdown:
+                final listDataJson = entryValue['list'] as Map<String, dynamic>?;
+                final listData = listDataJson != null
+                    ? listDataJson.entries.map((e) => DropdownModel(code: e.key, label: e.value['label'])).toList()
+                    : <DropdownModel>[];
+                return PickerTextFormField(
+                  initialValue: (_data[fieldCode] as DropdownModel?)?.label,
+                  onTap: () async {
+                    final result = await widget.onDropdownPicker?.call(listData, _data[fieldCode]);
+                    if (result == null) return null;
+
+                    _data[fieldCode] = result;
+                    return result.label;
+                  },
+                );
+              case FieldType.unknown:
+                return const SizedBox();
+            }
+          }).toList(),
           ElevatedButton(
             onPressed: () {
               formKey.currentState?.save();
-              widget.onSave?.call(
-                Contact(
-                  name: _name,
-                  dob: _dob,
-                  country: _country,
-                ),
-              );
+              widget.onSave?.call(_data);
             },
             child: const Text('Submit'),
           ),

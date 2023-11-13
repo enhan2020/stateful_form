@@ -1,23 +1,23 @@
-class Contact {
-  final String? name;
-  final DateTime? dob;
-  final Country? country;
+enum FieldType {
+  text('text'),
+  datetime('datetime'),
+  dropdown('dropdown'),
+  unknown('unknown');
 
-  const Contact({
-    this.name,
-    this.dob,
-    this.country,
-  });
+  const FieldType(this.value);
 
-  @override
-  String toString() {
-    return 'name: $name, dob: ${dob?.toIso8601String()}, country: ${country?.label}(${country?.code})';
-  }
+  final String value;
 }
 
-class Country {
+class DropdownModel {
   final String code;
   final String label;
 
-  const Country({required this.code, required this.label});
+  const DropdownModel({required this.code, required this.label});
+
+  factory DropdownModel.fromJson(Map<String, dynamic> json) {
+    final code = json['code'] as String;
+    final label = json['label'] as String;
+    return DropdownModel(code: code, label: label);
+  }
 }
