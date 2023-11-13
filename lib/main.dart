@@ -48,35 +48,10 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
+    _value = initialInformation;
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       final configString = await rootBundle.loadString('assets/sample.json');
       configData = jsonDecode(configString)?['data'];
-
-      for (var info in initialInformation.entries) {
-        final key = info.key;
-        final value = info.value;
-        // skip if key not found in config
-        if (configData?.containsKey(key) != true) continue;
-        final config = configData?[key];
-
-        // get input field type
-        final fieldType =
-            FieldType.values.firstWhere((element) => element.value == config?['type'], orElse: () => FieldType.unknown);
-
-        // parse to object
-        switch (fieldType) {
-          case FieldType.text:
-            _value[key] = value;
-          case FieldType.datetime:
-            _value[key] = DateTime.tryParse(value);
-          case FieldType.dropdown:
-            if (config?['list']?.containsKey(value) == true) {
-              _value[key] = DropdownModel(code: value, label: config!['list']![value]?['label']);
-            }
-          case FieldType.unknown:
-            _value[key] = value;
-        }
-      }
       setState(() {});
     });
   }
@@ -90,18 +65,20 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         children: [
-          Text(_value.encodeToString.toString()),
+          Text(_value.toString()),
           Expanded(
-            child: SingleChildScrollView(
-              child: CustomForm(
-                config: configData ?? {},
-                initialValue: _value,
-                onDatePicker: _showDatePicker,
-                dateFormatter: _dateFormatter,
-                onDropdownPicker: _showDropdownPicker,
-                onSave: (value) => setState(() => _value = value),
-              ),
-            ),
+            child: configData != null
+                ? SingleChildScrollView(
+                    child: CustomForm(
+                      config: configData!,
+                      initialValue: _value,
+                      onDatePicker: _showDatePicker,
+                      dateFormatter: _dateFormatter,
+                      onDropdownPicker: _showDropdownPicker,
+                      onSave: (value) => setState(() => _value = value),
+                    ),
+                  )
+                : const Center(child: CircularProgressIndicator()),
           ),
         ],
       ),
@@ -120,7 +97,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   String? _dateFormatter(DateTime? dateTime) {
     if (dateTime == null) return null;
-    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+    return '${dateTime.year}-${dateTime.month}-${dateTime.day}';
   }
 
   Future<DropdownModel?> _showDropdownPicker(List<DropdownModel> data, DropdownModel? selected) async {
@@ -148,18 +125,5 @@ class _MyHomePageState extends State<MyHomePage> {
         );
       },
     );
-  }
-}
-
-extension on Map<String, dynamic> {
-  Map<String, dynamic> get encodeToString {
-    final beautifyValue = map((key, value) {
-      String? result;
-      if (value is DateTime) result = value.toIso8601String();
-      if (value is DropdownModel) result = value.code;
-
-      return MapEntry(key, result ?? value);
-    });
-    return beautifyValue;
   }
 }

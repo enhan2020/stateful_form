@@ -19,6 +19,23 @@
           "label": "Indonesia"
         }
       }
+    },
+    "title": {
+      "type": "dropdown",
+      "list": {
+        "mr": {
+          "label": "Mr"
+        },
+        "mrs": {
+          "label": "Mrs"
+        },
+        "mister": {
+          "label": "Mister"
+        },
+        "master": {
+          "label": "Master"
+        }
+      }
     }
   }
 }
