@@ -64,10 +64,7 @@ class _CustomFormState extends State<CustomForm> {
                   },
                 );
               case FieldType.dropdown:
-                final listDataJson = entryValue['list'] as Map<String, dynamic>?;
-                final listData = listDataJson != null
-                    ? listDataJson.entries.map((e) => DropdownModel(code: e.key, label: e.value['label'])).toList()
-                    : <DropdownModel>[];
+                final listData = entryValue['list']?.entries?.map<DropdownModel>((e) => DropdownModel(code: e.key, label: e.value['label'])).toList() ?? <DropdownModel>[];
                 return PickerTextFormField(
                   initialValue: (_data[fieldCode] as DropdownModel?)?.label,
                   onTap: () async {
