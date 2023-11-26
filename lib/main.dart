@@ -75,6 +75,17 @@ class _MyHomePageState extends State<MyHomePage> {
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          setState(() {
+            contact = Contact(
+              name: 'Ferry',
+              dob: DateTime(2000, 4, 4),
+              country: countryList[1],
+            );
+          });
+        },
+      ),
     );
   }
 

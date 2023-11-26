@@ -39,6 +39,17 @@ class _CustomFormState extends State<CustomForm> {
   }
 
   @override
+  void didUpdateWidget(covariant CustomForm oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.initialValue != oldWidget.initialValue) {
+      _data = widget.initialValue;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        formKey.currentState?.reset();
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Form(
       key: formKey,
@@ -102,6 +113,15 @@ class _PickerTextFormFieldState extends State<PickerTextFormField> {
   void initState() {
     super.initState();
     _controller = TextEditingController(text: widget.initialValue);
+  }
+
+  @override
+  void didUpdateWidget(covariant PickerTextFormField oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if(_controller?.text != widget.initialValue) {
+      _controller?.dispose();
+      _controller = TextEditingController(text: widget.initialValue);
+    }
   }
 
   @override
