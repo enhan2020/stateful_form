@@ -40,6 +40,7 @@ class _MyHomePageState extends State<MyHomePage> {
   ];
 
   Contact? contact;
+  UniqueKey _key = UniqueKey();
 
   @override
   void initState() {
@@ -64,6 +65,7 @@ class _MyHomePageState extends State<MyHomePage> {
           Expanded(
             child: SingleChildScrollView(
               child: CustomForm(
+                key: _key,
                 initialValue: contact,
                 onDatePicker: _showDatePicker,
                 dateFormatter: _dateFormatter,
@@ -74,6 +76,18 @@ class _MyHomePageState extends State<MyHomePage> {
             ),
           ),
         ],
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          setState(() {
+            contact = Contact(
+              name: 'Ferry',
+              dob: DateTime(2000, 4, 4),
+              country: countryList[1],
+            );
+            _key = UniqueKey();
+          });
+        },
       ),
     );
   }
