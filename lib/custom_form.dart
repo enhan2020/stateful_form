@@ -26,18 +26,16 @@ class CustomForm extends StatefulWidget {
 
 class _CustomFormState extends State<CustomForm> {
   final formKey = GlobalKey<FormState>();
-  String? _name;
-  DateTime? _dob;
-  Country? _country;
+  Contact? _data;
 
   @override
   void initState() {
     super.initState();
     if (widget.initialValue != null) {
-      _name = widget.initialValue!.name;
-      _dob = widget.initialValue!.dob;
-      _country = widget.initialValue!.country;
+      _data = widget.initialValue;
     }
+
+    _data ??= Contact();
   }
 
   @override
@@ -47,39 +45,33 @@ class _CustomFormState extends State<CustomForm> {
       child: Column(
         children: [
           TextFormField(
-            initialValue: _name,
-            onSaved: (value) => _name = value ?? '',
+            initialValue: _data?.name,
+            onSaved: (value) => _data?.name = value ?? '',
           ),
           PickerTextFormField(
-            initialValue: widget.dateFormatter?.call(_dob) ?? _dob!.toIso8601String(),
+            initialValue: widget.dateFormatter?.call(_data?.dob) ?? _data?.dob!.toIso8601String(),
             onTap: () async {
-              final result = await widget.onDatePicker?.call(_dob);
+              final result = await widget.onDatePicker?.call(_data?.dob);
               if (result == null) return null;
 
-              _dob = result;
-              return widget.dateFormatter?.call(_dob) ?? _dob!.toIso8601String();
+              _data?.dob = result;
+              return widget.dateFormatter?.call(_data?.dob) ?? _data?.dob!.toIso8601String();
             },
           ),
           PickerTextFormField(
-            initialValue: _country?.label,
+            initialValue: _data?.country?.label,
             onTap: () async {
-              final result = await widget.onCountryPicker?.call(widget.countryList ?? [], _country);
+              final result = await widget.onCountryPicker?.call(widget.countryList ?? [], _data?.country);
               if (result == null) return null;
 
-              _country = result;
-              return _country!.label;
+              _data?.country = result;
+              return _data?.country!.label;
             },
           ),
           ElevatedButton(
             onPressed: () {
               formKey.currentState?.save();
-              widget.onSave?.call(
-                Contact(
-                  name: _name,
-                  dob: _dob,
-                  country: _country,
-                ),
-              );
+              widget.onSave?.call(_data!);
             },
             child: const Text('Submit'),
           ),

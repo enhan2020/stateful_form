@@ -1,9 +1,9 @@
 class Contact {
-  final String? name;
-  final DateTime? dob;
-  final Country? country;
+  String? name;
+  DateTime? dob;
+  Country? country;
 
-  const Contact({
+  Contact({
     this.name,
     this.dob,
     this.country,
